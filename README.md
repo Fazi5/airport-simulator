@@ -1,39 +1,42 @@
-# Custom Shell in C++
+# Smart Airport Simulator & Custom Shell (C++)
 
-A robust shell-like program that emulates the functionality of a command-line interface, demonstrating core OS concepts like process creation, process control, and inter-process communication (IPC) via pipelining.
+An Operating Systems course project in two parts:
 
-## Features
-- **Standalone Commands**: Run commands like `ls`, `date`, `pwd`.
-- **Commands with Arguments**: Run commands like `ls -l /tmp`, `grep "pattern" file.txt`.
-- **Multi-level Pipelining**: Supports single and multi-level pipes (e.g., `ls -l | sort | wc -l`).
-- **Persistent Interface**: Displays a `myshell> ` prompt until the user types `quit`.
-- **Graceful Termination**: Ensures all resources are released and children are waited upon before exiting.
+1. **Smart Airport Simulation** (`airport_sim.cpp`): a multi-threaded simulation of an airport hub. Flights compete for limited ground resources under a custom scheduler and a custom memory manager.
+2. **Custom Shell** (`myshell.cpp`): a command-line shell with process creation and multi-stage pipes.
 
-## System Calls Used
-- `fork()`: Creates child processes for command execution.
-- `execvp()`: Replaces child process memory with the target executable.
-- `waitpid()`: Synchronizes parent and child processes.
-- `pipe()`: Establishes unidirectional IPC channels for data transfer.
-- `dup2()`: Redirects standard input/output streams for pipelining.
+The full design, formulas, test plan and results are in [`Project_Report.md`](Project_Report.md).
 
-## How to Compile and Run
+## Airport simulation
 
-> [!IMPORTANT]
-> This program requires a **POSIX environment** (Linux, macOS, or WSL on Windows).
+Each flight operation runs as its own thread and competes for seven resource types: fuel trucks, baggage carts, catering trucks, cleaning crews, maintenance teams, jetbridges and de-icing trucks. Mutexes and condition variables control access, and every flight passes through a 5-stage passenger pipeline (check-in → security → customs → gate → boarding).
 
-1.  Open your terminal.
-2.  Navigate to the project directory.
-3.  Compile the source code:
-    ```bash
-    g++ -o myshell myshell.cpp
-    ```
-4.  Run the shell:
-    ```bash
-    ./myshell
-    ```
+**HMFQ-PPRA scheduler.** A multilevel feedback queue extended with:
+- a Predicted Impact Score that weighs delay, connections, resources, weather and fuel
+- exponential aging to prevent starvation
+- a dynamic quantum based on load
+- priority inheritance, so a high-priority flight blocked on a resource isn't stuck behind lower-priority work
+- cost-based preemption and a guaranteed-service promotion
 
-## Project Structure
-- `myshell.cpp`: The main source code with detailed internal documentation.
-- `report.md`: A technical report on `dup()` and `dup2()` with diagrams.
-- `task.md`: Development task list (internal).
-- `implementation_plan.md`: Detailed plan used during development (internal).
+**AWSC-PPC memory manager.** A working-set clock page-replacement algorithm with:
+- a multi-pass victim score (frequency, recency, access pattern, prediction)
+- predictive prefetching and frequency decay
+- priority protection for important processes
+- thrashing detection
+
+## Custom shell
+
+Runs programs with `fork()` + `execvp()` and connects any number of commands with `pipe()` + `dup2()`, such as `ls | grep cpp | wc -l`.
+
+## Build and run
+
+Linux:
+
+```bash
+g++ -std=c++17 -pthread -o airport airport_sim.cpp && ./airport
+g++ -std=c++17 -o myshell myshell.cpp && ./myshell
+```
+
+## Concepts covered
+
+Multithreading · synchronization (mutex, condition variables) · CPU scheduling · priority inversion · page replacement · process creation · IPC
